@@ -1,0 +1,30 @@
+{
+  "name": "english-tutor-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for English Tutor plugin - logs English corrections to SQLite",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["mcp", "english", "learning"],
+  "author": "ezotaka",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "@types/uuid": "^10.0.0",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.2.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "uuid": "^13.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.1.0",
+    "tsx": "^4.21.0"
+  }
+}

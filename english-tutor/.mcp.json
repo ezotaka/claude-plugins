@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "english-tutor": {
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp-server/dist/index.js"
+      ],
+      "env": {}
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "ezotaka-plugins",
+  "version": "0.1.0",
+  "description": "Collection of Claude Code plugins by ezotaka",
+  "owner": {
+    "name": "ezotaka",
+    "email": ""
+  },
+  "plugins": [
+    {
+      "name": "english-tutor",
+      "description": "Real-time English learning assistant that corrects your English while you develop",
+      "version": "0.1.0",
+      "author": {
+        "name": "ezotaka"
+      },
+      "source": "./english-tutor",
+      "category": "learning",
+      "keywords": ["english", "learning", "education", "language", "correction"],
+      "license": "MIT",
+      "repository": "https://github.com/ezotaka/claude-plugins",
+      "homepage": "https://github.com/ezotaka/claude-plugins/tree/main/english-tutor"
+    }
+  ]
+}
