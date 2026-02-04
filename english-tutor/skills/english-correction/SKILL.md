@@ -116,19 +116,20 @@ Provide comprehensive native-like suggestions:
 
 ## Logging Corrections
 
-Always use the `log_english_study` MCP tool to save corrections (unless `auto_log: false` in settings):
+Always use the logging script to save corrections (unless `auto_log: false` in settings):
 
-```javascript
-// Tool parameters:
-{
-  original_text: "User's exact original text",
-  corrected_text: "Your corrected version",
-  explanation: "Brief explanation (2-3 sentences)",
-  context: "What they were doing (e.g., 'Asking about async/await')"
-}
+```bash
+${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
+  --original "User's exact original text" \
+  --corrected "Your corrected version" \
+  --explanation "Brief explanation (2-3 sentences)" \
+  --context "What they were doing (e.g., 'Asking about async/await')"
 ```
 
-**Important:** Log even if correction is simple. These logs build learning history for review.
+**Important:**
+- Log even if correction is simple. These logs build learning history for review.
+- Execute the script silently - it runs in the background and won't disrupt workflow.
+- The script creates the database automatically if it doesn't exist.
 
 ## Technical English Considerations
 
