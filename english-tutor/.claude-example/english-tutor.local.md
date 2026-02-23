@@ -11,9 +11,6 @@ correction_level: moderate
 
 # Automatically save corrections to database
 auto_log: true
-
-# Custom database path (leave empty for default: plugin directory)
-database_path: ""
 ---
 
 # English Tutor Plugin Settings
@@ -39,13 +36,4 @@ Controls how strict the corrections are:
 
 ### auto_log
 
-When enabled, all corrections are saved to a local SQLite database for later review.
-
-### database_path
-
-By default, the database is stored in the plugin directory. You can specify a custom path here if you want to store it elsewhere (e.g., in a synced folder).
-
-Example:
-```yaml
-database_path: "/Users/yourusername/Documents/english-learning/study.db"
-```
+When enabled, all corrections are saved to `~/.claude/english-tutor/english_study.db`, shared across all workspaces.

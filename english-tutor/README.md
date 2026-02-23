@@ -44,7 +44,6 @@ Create a configuration file at `.claude/english-tutor.local.md`:
 ---
 correction_level: moderate  # off | gentle | moderate | strict
 auto_log: true             # Save corrections to database
-database_path: ""          # Custom DB path (empty = plugin directory)
 ---
 ```
 
@@ -107,13 +106,13 @@ english-tutor/
 
 ### Database Location
 
-By default, corrections are stored in `english-tutor/english_study.db`. You can customize this by setting the `DB_PATH` environment variable.
+Corrections are stored at `~/.claude/english-tutor/english_study.db`, shared across all workspaces. If an existing database is found at the old location (`<plugin-root>/english_study.db`), it is automatically migrated on first use.
 
 ## Privacy & Data
 
 - All corrections are stored locally in SQLite
 - No data is sent to external servers
-- Database location: `english-tutor/english_study.db` (or custom path)
+- Database location: `~/.claude/english-tutor/english_study.db`
 
 ## License
 

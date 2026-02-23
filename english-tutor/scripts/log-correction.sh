@@ -4,10 +4,20 @@ set -euo pipefail
 # English Tutor - Correction Logging Script
 # Logs English corrections to SQLite database
 
-# Default database path (relative to plugin root)
+# Database path: ~/.claude/english-tutor/english_study.db (shared across all workspaces)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_ROOT="$(dirname "$SCRIPT_DIR")"
-DB_PATH="${DB_PATH:-$PLUGIN_ROOT/english_study.db}"
+DB_DIR="$HOME/.claude/english-tutor"
+DB_PATH="$DB_DIR/english_study.db"
+
+# Create DB directory if needed
+mkdir -p "$DB_DIR"
+
+# Auto-migrate: move old DB from plugin root to new shared location (one-time)
+OLD_DB_PATH="$PLUGIN_ROOT/english_study.db"
+if [[ -f "$OLD_DB_PATH" && ! -f "$DB_PATH" ]]; then
+  mv "$OLD_DB_PATH" "$DB_PATH" || { echo "Warning: failed to migrate old DB from $OLD_DB_PATH" >&2; }
+fi
 
 # Parse arguments
 ORIGINAL_TEXT=""

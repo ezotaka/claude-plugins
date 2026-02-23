@@ -198,7 +198,6 @@ Check user's configuration file at `.claude/english-tutor.local.md`:
 ---
 correction_level: moderate  # off | gentle | moderate | strict
 auto_log: true
-database_path: ""
 ---
 ```
 

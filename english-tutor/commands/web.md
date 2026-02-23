@@ -11,7 +11,7 @@ description: Launch the English Tutor Dashboard to review your learning history
 2. **Run Server**:
    Execute the server in the background:
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/web/server.js --db ${CLAUDE_PLUGIN_ROOT}/english_study.db --port 3000
+   node ${CLAUDE_PLUGIN_ROOT}/web/server.js --db $HOME/.claude/english-tutor/english_study.db --port 3000
    ```
 
 3. **Notify User**:
@@ -30,8 +30,8 @@ English Tutor Dashboard を起動します！
    以下のコマンドを使用してサーバーをバックグラウンドで起動します：
 
    ```bash
-   node ${CLAUDE_PLUGIN_ROOT}/web/server.js 
-     --db ${CLAUDE_PLUGIN_ROOT}/english_study.db 
+   node ${CLAUDE_PLUGIN_ROOT}/web/server.js
+     --db $HOME/.claude/english-tutor/english_study.db
      --port 3000
    ```
 
