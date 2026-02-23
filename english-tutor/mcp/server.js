@@ -52,6 +52,14 @@ const stmtInsertCorrection = db.prepare(`
   VALUES (?, ?, ?, ?, ?, ?)
 `);
 
+const stmtGetDiagnosisData = db.prepare(`
+  SELECT c.category, c.original_fragment, c.corrected_fragment, c.explanation, s.created_at
+  FROM english_corrections c
+  JOIN english_sessions s ON c.session_id = s.id
+  ORDER BY s.created_at DESC
+  LIMIT ?
+`);
+
 // ---------------------------------------------------------------------------
 // MCP tool definition
 // ---------------------------------------------------------------------------
@@ -86,6 +94,16 @@ const TOOLS = [
       required: ['original', 'corrected', 'corrections'],
     },
   },
+  {
+    name: 'get_english_diagnosis',
+    description: 'Retrieve a summary of recent English corrections to provide a personalized diagnosis of the user\'s learning progress and weak points.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'number', description: 'Maximum number of recent corrections to analyze', default: 50 }
+      }
+    }
+  }
 ];
 
 function handleInitialize(id) {
@@ -105,58 +123,94 @@ function handleToolsList(id) {
 }
 
 function handleToolCall(id, params) {
-  if (params.name !== 'log_correction') {
+  if (params.name === 'log_correction') {
+    const { original, corrected, corrections, context, work_folder } = params.arguments;
+    const sessionId = randomUUID();
+
+    try {
+      stmtInsertSession.run(
+        sessionId,
+        original,
+        corrected,
+        context     ?? null,
+        work_folder ?? null,
+      );
+
+      for (const corr of corrections) {
+        stmtInsertCorrection.run(
+          randomUUID(),
+          sessionId,
+          corr.category,
+          corr.original_fragment  ?? null,
+          corr.corrected_fragment ?? null,
+          corr.explanation,
+        );
+      }
+    } catch (err) {
+      process.stderr.write(`[english-tutor MCP] DB error: ${err.message}\n`);
+    }
+
+    const textLines = [
+      '【English Correction】',
+      `Original:  "${original}"`,
+      `Corrected: "${corrected}"`,
+      '',
+      'Points:',
+    ];
+
+    for (const corr of corrections) {
+      const orig = corr.original_fragment ? `"${corr.original_fragment}" → ` : '';
+      const corrFrag = corr.corrected_fragment ? `"${corr.corrected_fragment}" ` : '';
+      textLines.push(`- [${corr.category}] ${orig}${corrFrag}(${corr.explanation})`);
+    }
+
     return {
       jsonrpc: '2.0',
       id,
-      error: { code: -32601, message: `Unknown tool: ${params.name}` },
+      result: { content: [{ type: 'text', text: textLines.join('\n') }] },
     };
   }
 
-  const { original, corrected, corrections, context, work_folder } = params.arguments;
-  const sessionId = randomUUID();
+  if (params.name === 'get_english_diagnosis') {
+    const limit = params.arguments.limit ?? 50;
+    try {
+      const data = stmtGetDiagnosisData.all(limit);
+      const categories = {};
+      data.forEach(item => {
+        categories[item.category] = (categories[item.category] || 0) + 1;
+      });
 
-  try {
-    stmtInsertSession.run(
-      sessionId,
-      original,
-      corrected,
-      context     ?? null,
-      work_folder ?? null,
-    );
+      const text = [
+        '### English Learning Diagnosis Data',
+        '',
+        '#### Overall Distribution:',
+        Object.entries(categories).map(([cat, count]) => `- ${cat}: ${count}`).join('\n'),
+        '',
+        '#### Recent Correction Points:',
+        data.map(item => {
+          const frag = item.original_fragment ? `"${item.original_fragment}" → "${item.corrected_fragment}"` : '(Multiple/Sentence level)';
+          return `- [${item.category}] ${frag}: ${item.explanation}`;
+        }).join('\n'),
+      ].join('\n');
 
-    for (const corr of corrections) {
-      stmtInsertCorrection.run(
-        randomUUID(),
-        sessionId,
-        corr.category,
-        corr.original_fragment  ?? null,
-        corr.corrected_fragment ?? null,
-        corr.explanation,
-      );
+      return {
+        jsonrpc: '2.0',
+        id,
+        result: { content: [{ type: 'text', text }] },
+      };
+    } catch (err) {
+      return {
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32603, message: `DB error: ${err.message}` },
+      };
     }
-  } catch (err) {
-    process.stderr.write(`[english-tutor MCP] DB error: ${err.message}\n`);
-  }
-
-  const textLines = [
-    '【English Correction】',
-    `Original:  "${original}"`,
-    `Corrected: "${corrected}"`,
-    '',
-    'Points:',
-  ];
-
-  for (const corr of corrections) {
-    const orig = corr.original_fragment ? `"${corr.original_fragment}" → ` : '';
-    const corrFrag = corr.corrected_fragment ? `"${corr.corrected_fragment}" ` : '';
-    textLines.push(`- [${corr.category}] ${orig}${corrFrag}(${corr.explanation})`);
   }
 
   return {
     jsonrpc: '2.0',
     id,
-    result: { content: [{ type: 'text', text: textLines.join('\n') }] },
+    error: { code: -32601, message: `Unknown tool: ${params.name}` },
   };
 }
 

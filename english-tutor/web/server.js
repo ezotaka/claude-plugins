@@ -100,6 +100,21 @@ const stmtStats = db.prepare(`
   FROM english_sessions
 `);
 
+const stmtCategoryDist = db.prepare(`
+  SELECT category, COUNT(*) as count
+  FROM english_corrections
+  GROUP BY category
+  ORDER BY count DESC
+`);
+
+const stmtTrends = db.prepare(`
+  SELECT date(created_at) as date, COUNT(*) as count
+  FROM english_sessions
+  GROUP BY date
+  ORDER BY date ASC
+  LIMIT 30
+`);
+
 // ---------------------------------------------------------------------------
 // Static file (loaded once at startup)
 // ---------------------------------------------------------------------------
@@ -174,6 +189,16 @@ function handleCorrectionById(id, res) {
   });
 }
 
+function handleCategoryStats(res) {
+  const categories = stmtCategoryDist.all();
+  send(res, 200, categories);
+}
+
+function handleTrends(res) {
+  const trends = stmtTrends.all();
+  send(res, 200, trends);
+}
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -186,9 +211,11 @@ const server = createServer((req, res) => {
   if (pathname === '/' || pathname === '/index.html') {
     return send(res, 200, INDEX_HTML, 'text/html; charset=utf-8');
   }
-  if (pathname === '/api/stats')       return handleStats(res);
-  if (pathname === '/api/folders')     return handleFolders(res);
-  if (pathname === '/api/corrections') return handleCorrections(req, res);
+  if (pathname === '/api/stats')                return handleStats(res);
+  if (pathname === '/api/folders')              return handleFolders(res);
+  if (pathname === '/api/corrections')          return handleCorrections(req, res);
+  if (pathname === '/api/analytics/categories') return handleCategoryStats(res);
+  if (pathname === '/api/analytics/trends')     return handleTrends(res);
 
   const matchId = pathname.match(/^\/api\/corrections\/([^/]+)$/);
   if (matchId) return handleCorrectionById(decodeURIComponent(matchId[1]), res);

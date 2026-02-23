@@ -32,17 +32,37 @@ Explanation: [簡潔な説明]
 
 ## データベースへの記録
 
-**IMPORTANT**: 英語の修正を行った場合、**必ず** MCPツール `mcp__plugin_english-tutor_english-tutor__log_correction` を使用してください。このツールが修正テキストの生成とDB記録を不可分に実行します。
+**IMPORTANT**: 英語の修正を行った場合、**必ず** MCPツール `mcp__plugin_english-tutor_english-tutor__log_correction` を使用してください。このツールが修正テキストの生成とDB記録を不可分に実行します。1つのメッセージに複数の修正ポイントがある場合は、`corrections` 配列にまとめて指定します。
 
 ```
 Tool: mcp__plugin_english-tutor_english-tutor__log_correction
 Parameters:
-  original    (必須) – ユーザーの元の英文
-  corrected   (必須) – 修正後の英文
-  explanation (必須) – 修正の説明
+  original    (必須) – ユーザーのフルオリジナルの英文
+  corrected   (必須) – フル修正後の英文
+  corrections (必須) – 修正ポイントの配列
+    - category: Grammar | Spelling | Vocabulary | Style
+    - original_fragment: (任意) 誤りのある特定の部分
+    - corrected_fragment: (任意) 修正後の特定の部分
+    - explanation: (必須) このポイントの説明
   context     (任意) – 会話のコンテキスト
   work_folder (任意) – 現在のプロジェクト名
 ```
+
+## 弱点診断 (Diagnostics)
+
+ユーザーから「自分の英語の傾向を分析して」「弱点を教えて」といったリクエストがあった場合は、MCPツール `get_english_diagnosis` を使用して最近のミスデータを取得し、AIによるパーソナライズされた診断レポートを提供してください。
+
+```
+Tool: mcp__plugin_english-tutor_english-tutor__get_english_diagnosis
+Parameters:
+  limit (任意) – 分析する最新の修正数（デフォルト50）
+```
+
+取得したデータを元に、以下の観点で診断を行います：
+1. **ミスの傾向**: 最も頻繁に発生しているカテゴリ（Grammar等）
+2. **繰り返されるパターン**: 特定の文法ミスや単語の誤用
+3. **具体的なアドバイス**: 次のステップに向けた学習プランの提案
+
 
 ツールが返すテキスト（`【English Correction】`形式）をそのまま表示してください。
 
