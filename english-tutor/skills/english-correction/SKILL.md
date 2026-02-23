@@ -118,26 +118,29 @@ Provide comprehensive native-like suggestions:
 
 **ALWAYS** use the MCP tool `mcp__plugin_english-tutor_english-tutor__log_correction` to display
 AND log corrections atomically. The tool returns the formatted `【English Correction】` text —
-display it exactly as returned. Calling this tool is the **only** way corrections are recorded;
-showing corrections as plain text bypasses the database entirely.
+display it exactly as returned. Calling this tool is the **only** way corrections are recorded.
 
 ```
 Tool: mcp__plugin_english-tutor_english-tutor__log_correction
 Parameters:
-  original    (required) – user's exact original text
-  corrected   (required) – corrected version
-  explanation (required) – brief explanation (2-3 sentences)
+  original    (required) – user's full original English text
+  corrected   (required) – full corrected English text
+  corrections (required) – array of correction points:
+    - category: Grammar | Spelling | Vocabulary | Style
+    - original_fragment: (optional) specific wrong part
+    - corrected_fragment: (optional) corrected part
+    - explanation: explanation for this point
   context     (optional) – what the user was doing
   work_folder (optional) – current project name
 ```
 
-**Fallback** (only if MCP tool is unavailable): use the bash script instead:
+**Fallback** (only if MCP tool is unavailable): use the bash script instead (note: script may need updating for v2):
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
-  --original "User's exact original text" \
-  --corrected "Your corrected version" \
-  --explanation "Brief explanation (2-3 sentences)" \
-  --context "What they were doing (e.g., 'Asking about async/await')"
+  --original "User's full original text" \
+  --corrected "Full corrected version" \
+  --corrections_json '[{"category":"Grammar", ...}]' \
+  --context "What they were doing"
 ```
 
 **Important:**

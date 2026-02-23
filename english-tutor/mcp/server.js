@@ -20,21 +20,36 @@ mkdirSync(dirname(DB_PATH), { recursive: true });
 const db = new DatabaseSync(DB_PATH);
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS english_study_logs (
+  CREATE TABLE IF NOT EXISTS english_sessions (
     id             TEXT PRIMARY KEY,
     original_text  TEXT NOT NULL,
     corrected_text TEXT NOT NULL,
-    explanation    TEXT NOT NULL,
     context        TEXT,
     work_folder    TEXT,
     created_at     TEXT NOT NULL
-  )
+  );
+
+  CREATE TABLE IF NOT EXISTS english_corrections (
+    id                 TEXT PRIMARY KEY,
+    session_id         TEXT NOT NULL,
+    category           TEXT NOT NULL,
+    original_fragment  TEXT,
+    corrected_fragment TEXT,
+    explanation        TEXT NOT NULL,
+    FOREIGN KEY(session_id) REFERENCES english_sessions(id)
+  );
 `);
 
-const stmtInsert = db.prepare(`
-  INSERT INTO english_study_logs
-    (id, original_text, corrected_text, explanation, context, work_folder, created_at)
-  VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
+const stmtInsertSession = db.prepare(`
+  INSERT INTO english_sessions
+    (id, original_text, corrected_text, context, work_folder, created_at)
+  VALUES (?, ?, ?, ?, ?, datetime('now'))
+`);
+
+const stmtInsertCorrection = db.prepare(`
+  INSERT INTO english_corrections
+    (id, session_id, category, original_fragment, corrected_fragment, explanation)
+  VALUES (?, ?, ?, ?, ?, ?)
 `);
 
 // ---------------------------------------------------------------------------
@@ -44,26 +59,35 @@ const TOOLS = [
   {
     name: 'log_correction',
     description:
-      'Display an English correction to the user AND atomically log it to the learning database. ' +
-      'ALWAYS use this tool instead of showing corrections as plain text — ' +
-      'calling this tool is the only way corrections are recorded.',
+      'Display English corrections to the user AND atomically log them to the learning database. ' +
+      'Supports multiple correction points per message.',
     inputSchema: {
       type: 'object',
       properties: {
-        original:    { type: 'string', description: "User's original English text" },
-        corrected:   { type: 'string', description: 'Corrected English text' },
-        explanation: { type: 'string', description: 'Brief explanation of the correction' },
+        original:    { type: 'string', description: "User's full original English text" },
+        corrected:   { type: 'string', description: 'Full corrected English text' },
+        corrections: {
+          type: 'array',
+          description: 'Individual correction points',
+          items: {
+            type: 'object',
+            properties: {
+              category:           { type: 'string', enum: ['Grammar', 'Spelling', 'Vocabulary', 'Style'], description: 'Category of the error' },
+              original_fragment:  { type: 'string', description: 'The specific part that was wrong (optional)' },
+              corrected_fragment: { type: 'string', description: 'The corrected part (optional)' },
+              explanation:        { type: 'string', description: 'Explanation for this specific correction' },
+            },
+            required: ['category', 'explanation'],
+          }
+        },
         context:     { type: 'string', description: 'Optional: conversation context / topic' },
         work_folder: { type: 'string', description: 'Optional: current project/workspace name' },
       },
-      required: ['original', 'corrected', 'explanation'],
+      required: ['original', 'corrected', 'corrections'],
     },
   },
 ];
 
-// ---------------------------------------------------------------------------
-// MCP method handlers
-// ---------------------------------------------------------------------------
 function handleInitialize(id) {
   return {
     jsonrpc: '2.0',
@@ -89,31 +113,50 @@ function handleToolCall(id, params) {
     };
   }
 
-  const { original, corrected, explanation, context, work_folder } = params.arguments;
+  const { original, corrected, corrections, context, work_folder } = params.arguments;
+  const sessionId = randomUUID();
 
   try {
-    stmtInsert.run(
-      randomUUID(),
+    stmtInsertSession.run(
+      sessionId,
       original,
       corrected,
-      explanation,
-      context    ?? null,
+      context     ?? null,
       work_folder ?? null,
     );
+
+    for (const corr of corrections) {
+      stmtInsertCorrection.run(
+        randomUUID(),
+        sessionId,
+        corr.category,
+        corr.original_fragment  ?? null,
+        corr.corrected_fragment ?? null,
+        corr.explanation,
+      );
+    }
   } catch (err) {
     process.stderr.write(`[english-tutor MCP] DB error: ${err.message}\n`);
   }
 
-  const text = [
+  const textLines = [
     '【English Correction】',
-    `"${original}" → "${corrected}"`,
-    `Explanation: ${explanation}`,
-  ].join('\n');
+    `Original:  "${original}"`,
+    `Corrected: "${corrected}"`,
+    '',
+    'Points:',
+  ];
+
+  for (const corr of corrections) {
+    const orig = corr.original_fragment ? `"${corr.original_fragment}" → ` : '';
+    const corrFrag = corr.corrected_fragment ? `"${corr.corrected_fragment}" ` : '';
+    textLines.push(`- [${corr.category}] ${orig}${corrFrag}(${corr.explanation})`);
+  }
 
   return {
     jsonrpc: '2.0',
     id,
-    result: { content: [{ type: 'text', text }] },
+    result: { content: [{ type: 'text', text: textLines.join('\n') }] },
   };
 }
 

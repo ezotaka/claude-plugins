@@ -31,58 +31,73 @@ if (!DB_PATH) {
 const db = new DatabaseSync(DB_PATH);
 
 db.exec(`
-  CREATE TABLE IF NOT EXISTS english_study_logs (
+  CREATE TABLE IF NOT EXISTS english_sessions (
     id             TEXT PRIMARY KEY,
     original_text  TEXT NOT NULL,
     corrected_text TEXT NOT NULL,
-    explanation    TEXT NOT NULL,
     context        TEXT,
     work_folder    TEXT,
     created_at     TEXT NOT NULL
-  )
+  );
+
+  CREATE TABLE IF NOT EXISTS english_corrections (
+    id                 TEXT PRIMARY KEY,
+    session_id         TEXT NOT NULL,
+    category           TEXT NOT NULL,
+    original_fragment  TEXT,
+    corrected_fragment TEXT,
+    explanation        TEXT NOT NULL,
+    FOREIGN KEY(session_id) REFERENCES english_sessions(id)
+  );
 `);
 
-const stmtCorrections = db.prepare(`
-  SELECT id, original_text, corrected_text, explanation, context, work_folder, created_at
-  FROM english_study_logs
+const stmtSessions = db.prepare(`
+  SELECT s.*, GROUP_CONCAT(c.category || ': ' || c.explanation, ' | ') AS summary_explanation
+  FROM english_sessions s
+  LEFT JOIN english_corrections c ON s.id = c.session_id
   WHERE 
-    (original_text LIKE ? OR corrected_text LIKE ? OR explanation LIKE ? OR context LIKE ?)
-    AND (work_folder LIKE ? OR ? IS NULL)
-    AND created_at >= ?
-    AND created_at <= ?
-  ORDER BY created_at DESC
+    (s.original_text LIKE ? OR s.corrected_text LIKE ? OR c.explanation LIKE ? OR s.context LIKE ?)
+    AND (s.work_folder LIKE ? OR ? IS NULL)
+    AND s.created_at >= ?
+    AND s.created_at <= ?
+  GROUP BY s.id
+  ORDER BY s.created_at DESC
   LIMIT ? OFFSET ?
 `);
 
 const stmtCount = db.prepare(`
-  SELECT COUNT(*) AS total 
-  FROM english_study_logs
+  SELECT COUNT(DISTINCT s.id) AS total 
+  FROM english_sessions s
+  LEFT JOIN english_corrections c ON s.id = c.session_id
   WHERE 
-    (original_text LIKE ? OR corrected_text LIKE ? OR explanation LIKE ? OR context LIKE ?)
-    AND (work_folder LIKE ? OR ? IS NULL)
-    AND created_at >= ?
-    AND created_at <= ?
+    (s.original_text LIKE ? OR s.corrected_text LIKE ? OR c.explanation LIKE ? OR s.context LIKE ?)
+    AND (s.work_folder LIKE ? OR ? IS NULL)
+    AND s.created_at >= ?
+    AND s.created_at <= ?
 `);
 
-const stmtCorrectionById = db.prepare(`
-  SELECT id, original_text, corrected_text, explanation, context, work_folder, created_at
-  FROM english_study_logs
-  WHERE id = ?
+const stmtSessionById = db.prepare(`
+  SELECT * FROM english_sessions WHERE id = ?
+`);
+
+const stmtCorrectionsBySessionId = db.prepare(`
+  SELECT * FROM english_corrections WHERE session_id = ?
 `);
 
 const stmtFolders = db.prepare(`
   SELECT DISTINCT work_folder 
-  FROM english_study_logs 
+  FROM english_sessions 
   WHERE work_folder IS NOT NULL AND work_folder != ''
   ORDER BY work_folder ASC
 `);
 
 const stmtStats = db.prepare(`
   SELECT
-    COUNT(*) AS total,
+    COUNT(*) AS total_sessions,
+    (SELECT COUNT(*) FROM english_corrections) AS total_corrections,
     COUNT(CASE WHEN created_at >= datetime('now', '-7 days')  THEN 1 END) AS last7days,
-    COUNT(CASE WHEN created_at >= datetime('now', '-30 days') THEN 1 END) AS last30days
-  FROM english_study_logs
+    (SELECT COUNT(*) FROM english_corrections c JOIN english_sessions s ON c.session_id = s.id WHERE s.created_at >= datetime('now', '-7 days')) AS corrections7days
+  FROM english_sessions
 `);
 
 // ---------------------------------------------------------------------------
@@ -108,7 +123,12 @@ function send(res, status, data, contentType = 'application/json') {
 // ---------------------------------------------------------------------------
 function handleStats(res) {
   const stats = stmtStats.get();
-  send(res, 200, stats);
+  // Map new field names to what UI expects for simplicity
+  send(res, 200, {
+    total: stats.total_corrections,
+    last7days: stats.corrections7days,
+    last30days: stats.total_sessions // Simple fallback for now
+  });
 }
 
 function handleFolders(res) {
@@ -127,8 +147,14 @@ function handleCorrections(req, res) {
   const offset  = (page - 1) * limit;
 
   const params = [keyword, keyword, keyword, keyword, folder, folder, from, to];
-  const items  = stmtCorrections.all(...params, limit, offset);
-  const total  = stmtCount.get(...params).total;
+  const sessions = stmtSessions.all(...params, limit, offset);
+  const total    = stmtCount.get(...params).total;
+
+  // Map to UI expectation
+  const items = sessions.map(s => ({
+    ...s,
+    explanation: s.summary_explanation // So UI can still display something
+  }));
 
   send(res, 200, {
     total,
@@ -138,9 +164,14 @@ function handleCorrections(req, res) {
 }
 
 function handleCorrectionById(id, res) {
-  const row = stmtCorrectionById.get(id);
-  if (!row) return send(res, 404, { error: 'Not found' });
-  send(res, 200, row);
+  const session = stmtSessionById.get(id);
+  if (!session) return send(res, 404, { error: 'Not found' });
+  
+  const points = stmtCorrectionsBySessionId.all(id);
+  send(res, 200, {
+    ...session,
+    points // List of all corrections
+  });
 }
 
 // ---------------------------------------------------------------------------

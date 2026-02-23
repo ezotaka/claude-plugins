@@ -67,27 +67,41 @@ if ! command -v sqlite3 &> /dev/null; then
   exit 1
 fi
 
-# Create database and table if not exists
+# Create database and tables if not exists
 sqlite3 "$DB_PATH" <<EOF
-CREATE TABLE IF NOT EXISTS english_study_logs (
-  id TEXT PRIMARY KEY,
-  original_text TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS english_sessions (
+  id             TEXT PRIMARY KEY,
+  original_text  TEXT NOT NULL,
   corrected_text TEXT NOT NULL,
-  explanation TEXT NOT NULL,
-  context TEXT,
-  work_folder TEXT,
-  created_at TEXT NOT NULL
+  context        TEXT,
+  work_folder    TEXT,
+  created_at     TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS english_corrections (
+  id                 TEXT PRIMARY KEY,
+  session_id         TEXT NOT NULL,
+  category           TEXT NOT NULL,
+  original_fragment  TEXT,
+  corrected_fragment TEXT,
+  explanation        TEXT NOT NULL,
+  FOREIGN KEY(session_id) REFERENCES english_sessions(id)
 );
 EOF
 
-# Generate UUID (macOS/Linux compatible)
-if command -v uuidgen &> /dev/null; then
-  UUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
-else
-  # Fallback: use random hex string
-  UUID=$(cat /dev/urandom | LC_ALL=C tr -dc 'a-f0-9' | fold -w 32 | head -n 1)
-  UUID="${UUID:0:8}-${UUID:8:4}-${UUID:12:4}-${UUID:16:4}-${UUID:20:12}"
-fi
+# Generate UUIDs
+generate_uuid() {
+  if command -v uuidgen &> /dev/null; then
+    uuidgen | tr '[:upper:]' '[:lower:]'
+  else
+    # Fallback: use random hex string
+    local hex=$(cat /dev/urandom | LC_ALL=C tr -dc 'a-f0-9' | fold -w 32 | head -n 1)
+    echo "${hex:0:8}-${hex:8:4}-${hex:12:4}-${hex:16:4}-${hex:20:12}"
+  fi
+}
+
+SESSION_ID=$(generate_uuid)
+CORRECTION_ID=$(generate_uuid)
 
 # Current timestamp in ISO 8601 format
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
@@ -103,10 +117,13 @@ EXPLANATION_ESCAPED=$(escape_sql "$EXPLANATION")
 CONTEXT_ESCAPED=$(escape_sql "$CONTEXT")
 WORK_FOLDER_ESCAPED=$(escape_sql "$WORK_FOLDER")
 
-# Insert log entry
+# Insert log entry (simplified for script: one session, one Grammar correction)
 sqlite3 "$DB_PATH" <<EOF
-INSERT INTO english_study_logs (id, original_text, corrected_text, explanation, context, work_folder, created_at)
-VALUES ('$UUID', '$ORIGINAL_ESCAPED', '$CORRECTED_ESCAPED', '$EXPLANATION_ESCAPED', '$CONTEXT_ESCAPED', '$WORK_FOLDER_ESCAPED', '$TIMESTAMP');
+INSERT INTO english_sessions (id, original_text, corrected_text, context, work_folder, created_at)
+VALUES ('$SESSION_ID', '$ORIGINAL_ESCAPED', '$CORRECTED_ESCAPED', '$CONTEXT_ESCAPED', '$WORK_FOLDER_ESCAPED', '$TIMESTAMP');
+
+INSERT INTO english_corrections (id, session_id, category, original_fragment, corrected_fragment, explanation)
+VALUES ('$CORRECTION_ID', '$SESSION_ID', 'Grammar', '$ORIGINAL_ESCAPED', '$CORRECTED_ESCAPED', '$EXPLANATION_ESCAPED');
 EOF
 
 # Output success (silent mode - only output on error)
