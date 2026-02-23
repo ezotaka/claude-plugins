@@ -1,3 +1,6 @@
+# Worktrees
+.worktrees/
+
 # Database files
 english_study.db
 english_study.db-journal
