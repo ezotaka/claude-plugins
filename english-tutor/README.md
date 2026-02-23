@@ -75,10 +75,6 @@ Explanation: After "want to", use the base form of the verb (infinitive)
 Now, let me help you implement that feature...
 ```
 
-### Review Learning Logs
-
-(Commands will be added in future versions to review your learning history)
-
 ## How It Works
 
 1. **Detection**: Claude monitors your messages for English content
@@ -113,18 +109,11 @@ english-tutor/
 
 By default, corrections are stored in `english-tutor/english_study.db`. You can customize this by setting the `DB_PATH` environment variable.
 
-### Testing
-
-```bash
-# Test the plugin with Claude Code
-cc --plugin-dir /path/to/english-tutor
-```
-
 ## Privacy & Data
 
 - All corrections are stored locally in SQLite
 - No data is sent to external servers
-- Database location: `english-tutor/mcp-server/english_study.db` (or custom path)
+- Database location: `english-tutor/english_study.db` (or custom path)
 
 ## License
 

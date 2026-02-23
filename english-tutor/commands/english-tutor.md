@@ -3,6 +3,15 @@ name: english-tutor
 description: Enable English grammar correction for this session
 ---
 
+**IMPORTANT - First Action**: Before responding to the user, you MUST create/update the state file to enable English correction:
+
+1. Check if `.claude/english-tutor.local.md` exists
+2. If it doesn't exist, create it with the template from `.claude-example/english-tutor.local.md` in the plugin directory, setting `correction_level: moderate`
+3. If it exists but has `correction_level: off`, update it to `correction_level: moderate`
+4. Only after updating the state file, proceed with your response
+
+---
+
 英語学習モードを有効にしました！
 
 これ以降、あなたが英語でメッセージを書いた際は、必ず以下の手順で対応します:
