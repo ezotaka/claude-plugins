@@ -1,6 +1,6 @@
 {
   "name": "english-tutor",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Real-time English learning assistant for Claude Code that corrects your English while you develop",
   "author": {
     "name": "ezotaka",
@@ -9,5 +9,14 @@
   },
   "repository": "https://github.com/ezotaka/claude-plugins",
   "license": "MIT",
-  "keywords": ["english", "learning", "education", "language", "correction"]
+  "keywords": ["english", "learning", "education", "language", "correction"],
+  "mcpServers": {
+    "english-tutor": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.js"],
+      "env": {
+        "ENGLISH_TUTOR_DB": "${HOME}/.claude/english-tutor/english_study.db"
+      }
+    }
+  }
 }

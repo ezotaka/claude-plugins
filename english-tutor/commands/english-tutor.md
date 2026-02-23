@@ -28,12 +28,25 @@ Explanation: [簡潔な説明]
 ```
 
 3. **通常対応**: その後、あなたのリクエストに通常通り対応
-4. **データベース記録**: 修正を行った場合、必ずスクリプトを使って記録
+4. **データベース記録**: 修正を行った場合、**必ず** MCPツールを使って記録と表示を同時に行う
 
 ## データベースへの記録
 
-**IMPORTANT**: 英語の修正を行った場合、**必ず**以下のスクリプトを使用してデータベースに記録してください：
+**IMPORTANT**: 英語の修正を行った場合、**必ず** MCPツール `mcp__plugin_english-tutor_english-tutor__log_correction` を使用してください。このツールが修正テキストの生成とDB記録を不可分に実行します。
 
+```
+Tool: mcp__plugin_english-tutor_english-tutor__log_correction
+Parameters:
+  original    (必須) – ユーザーの元の英文
+  corrected   (必須) – 修正後の英文
+  explanation (必須) – 修正の説明
+  context     (任意) – 会話のコンテキスト
+  work_folder (任意) – 現在のプロジェクト名
+```
+
+ツールが返すテキスト（`【English Correction】`形式）をそのまま表示してください。
+
+**フォールバック**（MCPツールが利用不可の場合のみ）:
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
   --original "ユーザーの元の英文" \
@@ -42,15 +55,6 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
   --context "会話のコンテキスト（オプション）" \
   --work-folder "$(basename "$(pwd)")"
 ```
-
-パラメータ:
-- `--original`: ユーザーの元の英文（修正前のテキスト全体）
-- `--corrected`: 修正後の英文（修正後のテキスト全体）
-- `--explanation`: 修正の説明（【English Correction】で表示した内容）
-- `--context`: (オプション) 会話のコンテキストやトピック
-- `--work-folder`: (オプション) 現在のプロジェクトディレクトリ名（自動取得推奨）
-
-**注意**: このスクリプトはバックグラウンドで実行され、ユーザーに表示されません。
 
 ## チェック対象
 

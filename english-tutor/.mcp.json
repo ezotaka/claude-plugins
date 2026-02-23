@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "english-tutor": {
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/mcp/server.js"],
+      "env": {
+        "ENGLISH_TUTOR_DB": "${HOME}/.claude/english-tutor/english_study.db"
+      }
+    }
+  }
+}

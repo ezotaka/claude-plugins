@@ -116,8 +116,22 @@ Provide comprehensive native-like suggestions:
 
 ## Logging Corrections
 
-Always use the logging script to save corrections (unless `auto_log: false` in settings):
+**ALWAYS** use the MCP tool `mcp__plugin_english-tutor_english-tutor__log_correction` to display
+AND log corrections atomically. The tool returns the formatted `【English Correction】` text —
+display it exactly as returned. Calling this tool is the **only** way corrections are recorded;
+showing corrections as plain text bypasses the database entirely.
 
+```
+Tool: mcp__plugin_english-tutor_english-tutor__log_correction
+Parameters:
+  original    (required) – user's exact original text
+  corrected   (required) – corrected version
+  explanation (required) – brief explanation (2-3 sentences)
+  context     (optional) – what the user was doing
+  work_folder (optional) – current project name
+```
+
+**Fallback** (only if MCP tool is unavailable): use the bash script instead:
 ```bash
 ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
   --original "User's exact original text" \
@@ -128,8 +142,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
 
 **Important:**
 - Log even if correction is simple. These logs build learning history for review.
-- Execute the script silently - it runs in the background and won't disrupt workflow.
-- The script creates the database automatically if it doesn't exist.
+- The MCP tool runs synchronously and returns display text; no separate bash call is needed.
 
 ## Technical English Considerations
 
