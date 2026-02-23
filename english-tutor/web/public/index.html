@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>English Tutor Dashboard</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --success: #22c55e;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+    }
+
+    .app { max-width: 1000px; margin: 0 auto; padding: 24px 16px; }
+
+    header { margin-bottom: 32px; text-align: center; }
+    h1 { font-size: 1.875rem; font-weight: 800; color: var(--primary); }
+    .subtitle { color: var(--text-muted); font-size: 1rem; margin-top: 4px; }
+
+    /* Stats bar */
+    .stats { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+    .stat-card { 
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; flex: 1; min-width: 200px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .stat-card .value { font-size: 2.25rem; font-weight: 700; color: var(--primary); }
+    .stat-card .label { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; margin-top: 4px; }
+
+    /* Filter Bar */
+    .filter-bar {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px; }
+    .filter-group label { font-size: 0.75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    .filter-input {
+      padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 0.875rem; outline: none; transition: border-color 0.2s;
+    }
+    .filter-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+    .search-btn {
+      padding: 10px 20px; background: var(--primary); color: white; border: none;
+      border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .search-btn:hover { background: #1d4ed8; }
+
+    /* Controls & Pagination */
+    .controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .pagination { display: flex; gap: 8px; align-items: center; font-size: 0.875rem; color: var(--text-muted); }
+    .btn { padding: 8px 16px; border: 1px solid var(--border); border-radius: 8px;
+           background: var(--card-bg); cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+    .btn:hover:not(:disabled) { background: #f1f5f9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Correction Cards */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .card {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 20px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+      display: flex; flex-direction: column; gap: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+    .card-date { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .card-text { font-size: 0.9375rem; }
+    .card-original { color: var(--danger); position: relative; padding-left: 12px; }
+    .card-original::before { content: '×'; position: absolute; left: 0; }
+    .card-corrected { color: var(--success); position: relative; padding-left: 12px; font-weight: 500; }
+    .card-corrected::before { content: '→'; position: absolute; left: 0; }
+
+    /* Modal */
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center;
+      z-index: 1000; padding: 16px;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--card-bg); border-radius: 16px; width: 100%; max-width: 600px;
+      padding: 32px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      position: relative; animation: modal-in 0.3s ease-out;
+    }
+    @keyframes modal-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-close {
+      position: absolute; top: 20px; right: 20px; background: none; border: none;
+      font-size: 1.5rem; color: var(--text-muted); cursor: pointer;
+    }
+    .modal-section { margin-bottom: 24px; }
+    .modal-section:last-child { margin-bottom: 0; }
+    .modal-label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+    .modal-value { font-size: 1rem; color: var(--text); }
+    .modal-value.original { color: var(--danger); }
+    .modal-value.corrected { color: var(--success); font-weight: 600; }
+    .modal-value.explanation { background: #eff6ff; padding: 16px; border-radius: 8px; color: #1e40af; border-left: 4px solid var(--primary); }
+    .modal-value.context { font-style: italic; }
+
+    /* States */
+    .loading, .empty { text-align: center; padding: 64px 16px; color: var(--text-muted); }
+    .loading-spinner { border: 3px solid var(--border); border-top: 3px solid var(--primary); border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>English Tutor Dashboard</h1>
+    <p class="subtitle">Personal English Learning Analytics & History</p>
+  </header>
+
+  <section class="stats">
+    <div class="stat-card">
+      <div class="value" id="stat-total">--</div>
+      <div class="label">Total Corrections</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="stat-week">--</div>
+      <div class="label">Last 7 Days</div>
+    </div>
+    <div class="stat-card">
+      <div class="value" id="stat-month">--</div>
+      <div class="label">Last 30 Days</div>
+    </div>
+  </section>
+
+  <div class="filter-bar">
+    <div class="filter-group">
+      <label for="from">From</label>
+      <input type="date" id="from" class="filter-input">
+    </div>
+    <div class="filter-group">
+      <label for="to">To</label>
+      <input type="date" id="to" class="filter-input">
+    </div>
+    <div class="filter-group" style="flex: 2;">
+      <label for="keyword">Keyword</label>
+      <input type="text" id="keyword" class="filter-input" placeholder="Search original, corrected, or explanation...">
+    </div>
+    <button class="search-btn" id="search-btn">Search</button>
+  </div>
+
+  <div class="controls">
+    <div id="page-info">-- of -- items</div>
+    <div class="pagination">
+      <button class="btn" id="btn-prev" disabled>← Previous</button>
+      <button class="btn" id="btn-next" disabled>Next →</button>
+    </div>
+  </div>
+
+  <div id="correction-grid" class="grid">
+    <div class="loading">
+      <div class="loading-spinner"></div>
+      Loading your corrections...
+    </div>
+  </div>
+</div>
+
+<div id="modal-overlay" class="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" id="modal-close">&times;</button>
+    <div class="modal-section">
+      <div class="modal-label">Date</div>
+      <div class="modal-value" id="modal-date"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Original</div>
+      <div class="modal-value original" id="modal-original"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Corrected</div>
+      <div class="modal-value corrected" id="modal-corrected"></div>
+    </div>
+    <div class="modal-section">
+      <div class="modal-label">Explanation</div>
+      <div class="modal-value explanation" id="modal-explanation"></div>
+    </div>
+    <div class="modal-section" id="modal-context-section">
+      <div class="modal-label">Context</div>
+      <div class="modal-value context" id="modal-context"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let state = {
+    page: 1,
+    limit: 12,
+    total: 0,
+    filters: { from: '', to: '', keyword: '' }
+  };
+
+  function esc(str) {
+    if (!str) return '';
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function truncate(text, max = 80) {
+    if (!text) return '';
+    return text.length > max ? text.slice(0, max) + '...' : text;
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    return new Date(iso).toLocaleDateString(undefined, { 
+      year: 'numeric', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+  async function apiFetch(path) {
+    const res = await fetch(path);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  }
+
+  async function loadStats() {
+    try {
+      const s = await apiFetch('/api/stats');
+      document.getElementById('stat-total').textContent = s.total ?? 0;
+      document.getElementById('stat-week').textContent  = s.last7days ?? 0;
+      document.getElementById('stat-month').textContent = s.last30days ?? 0;
+    } catch (e) { console.error('Stats load failed', e); }
+  }
+
+  function showModal(item) {
+    document.getElementById('modal-date').textContent = formatDate(item.created_at);
+    document.getElementById('modal-original').textContent = item.original_text;
+    document.getElementById('modal-corrected').textContent = item.corrected_text;
+    document.getElementById('modal-explanation').textContent = item.explanation;
+    
+    const contextSection = document.getElementById('modal-context-section');
+    if (item.context) {
+      contextSection.style.display = 'block';
+      document.getElementById('modal-context').textContent = item.context;
+    } else {
+      contextSection.style.display = 'none';
+    }
+
+    document.getElementById('modal-overlay').classList.add('open');
+  }
+
+  function createCard(item) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="card-date">${esc(formatDate(item.created_at))}</div>
+      <div class="card-text card-original">${esc(truncate(item.original_text))}</div>
+      <div class="card-text card-corrected">${esc(truncate(item.corrected_text))}</div>
+    `;
+    card.onclick = () => showModal(item);
+    return card;
+  }
+
+  async function loadCorrections() {
+    const grid = document.getElementById('correction-grid');
+    grid.innerHTML = '<div class="loading"><div class="loading-spinner"></div>Loading...</div>';
+
+    try {
+      const params = new URLSearchParams({
+        page: state.page,
+        limit: state.limit,
+        from: state.filters.from,
+        to: state.filters.to,
+        keyword: state.filters.keyword
+      });
+
+      const result = await apiFetch(`/api/corrections?${params}`);
+      state.total = result.total;
+
+      const totalPages = Math.ceil(state.total / state.limit) || 1;
+      const startIdx = (state.page - 1) * state.limit + 1;
+      const endIdx = Math.min(state.page * state.limit, state.total);
+      
+      document.getElementById('page-info').textContent = 
+        state.total > 0 ? `${startIdx}-${endIdx} of ${state.total} items` : '0 items';
+      
+      document.getElementById('btn-prev').disabled = state.page <= 1;
+      document.getElementById('btn-next').disabled = state.page >= totalPages;
+
+      grid.innerHTML = '';
+      if (result.items.length === 0) {
+        grid.innerHTML = '<div class="empty">No corrections found matching your filters.</div>';
+        return;
+      }
+
+      result.items.forEach(item => grid.appendChild(createCard(item)));
+    } catch (e) {
+      grid.innerHTML = `<div class="empty" style="color:red">Error: ${esc(e.message)}</div>`;
+    }
+  }
+
+  // Event Handlers
+  document.getElementById('search-btn').onclick = () => {
+    state.filters.from = document.getElementById('from').value;
+    state.filters.to = document.getElementById('to').value;
+    state.filters.keyword = document.getElementById('keyword').value;
+    state.page = 1;
+    loadCorrections();
+    loadStats();
+  };
+
+  document.getElementById('btn-prev').onclick = () => {
+    if (state.page > 1) { state.page--; loadCorrections(); }
+  };
+
+  document.getElementById('btn-next').onclick = () => {
+    if (state.page * state.limit < state.total) { state.page++; loadCorrections(); }
+  };
+
+  document.getElementById('modal-close').onclick = () => {
+    document.getElementById('modal-overlay').classList.remove('open');
+  };
+
+  document.getElementById('modal-overlay').onclick = (e) => {
+    if (e.target.id === 'modal-overlay') document.getElementById('modal-overlay').classList.remove('open');
+  };
+
+  // Boot
+  loadStats();
+  loadCorrections();
+</script>
+</body>
+</html>
