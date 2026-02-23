@@ -39,7 +39,8 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
   --original "ユーザーの元の英文" \
   --corrected "修正後の英文" \
   --explanation "修正の説明" \
-  --context "会話のコンテキスト（オプション）"
+  --context "会話のコンテキスト（オプション）" \
+  --work-folder "$(basename "$(pwd)")"
 ```
 
 パラメータ:
@@ -47,6 +48,7 @@ ${CLAUDE_PLUGIN_ROOT}/scripts/log-correction.sh \
 - `--corrected`: 修正後の英文（修正後のテキスト全体）
 - `--explanation`: 修正の説明（【English Correction】で表示した内容）
 - `--context`: (オプション) 会話のコンテキストやトピック
+- `--work-folder`: (オプション) 現在のプロジェクトディレクトリ名（自動取得推奨）
 
 **注意**: このスクリプトはバックグラウンドで実行され、ユーザーに表示されません。
 

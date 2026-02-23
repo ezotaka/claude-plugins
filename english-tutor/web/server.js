@@ -37,15 +37,17 @@ db.exec(`
     corrected_text TEXT NOT NULL,
     explanation    TEXT NOT NULL,
     context        TEXT,
+    work_folder    TEXT,
     created_at     TEXT NOT NULL
   )
 `);
 
 const stmtCorrections = db.prepare(`
-  SELECT id, original_text, corrected_text, explanation, context, created_at
+  SELECT id, original_text, corrected_text, explanation, context, work_folder, created_at
   FROM english_study_logs
   WHERE 
     (original_text LIKE ? OR corrected_text LIKE ? OR explanation LIKE ? OR context LIKE ?)
+    AND (work_folder LIKE ? OR ? IS NULL)
     AND created_at >= ?
     AND created_at <= ?
   ORDER BY created_at DESC
@@ -57,14 +59,22 @@ const stmtCount = db.prepare(`
   FROM english_study_logs
   WHERE 
     (original_text LIKE ? OR corrected_text LIKE ? OR explanation LIKE ? OR context LIKE ?)
+    AND (work_folder LIKE ? OR ? IS NULL)
     AND created_at >= ?
     AND created_at <= ?
 `);
 
 const stmtCorrectionById = db.prepare(`
-  SELECT id, original_text, corrected_text, explanation, context, created_at
+  SELECT id, original_text, corrected_text, explanation, context, work_folder, created_at
   FROM english_study_logs
   WHERE id = ?
+`);
+
+const stmtFolders = db.prepare(`
+  SELECT DISTINCT work_folder 
+  FROM english_study_logs 
+  WHERE work_folder IS NOT NULL AND work_folder != ''
+  ORDER BY work_folder ASC
 `);
 
 const stmtStats = db.prepare(`
@@ -101,16 +111,22 @@ function handleStats(res) {
   send(res, 200, stats);
 }
 
+function handleFolders(res) {
+  const folders = stmtFolders.all().map(row => row.work_folder);
+  send(res, 200, folders);
+}
+
 function handleCorrections(req, res) {
   const url     = new URL(req.url, `http://localhost:${PORT}`);
   const page    = Math.max(1, parseInt(url.searchParams.get('page')    ?? '1',  10));
   const limit   = Math.min(100, parseInt(url.searchParams.get('limit') ?? '20', 10));
   const keyword = `%${url.searchParams.get('keyword') ?? ''}%`;
+  const folder  = url.searchParams.get('folder') || null;
   const from    = url.searchParams.get('from') || '0000-00-00';
   const to      = url.searchParams.get('to')   || '9999-99-99';
   const offset  = (page - 1) * limit;
 
-  const params = [keyword, keyword, keyword, keyword, from, to];
+  const params = [keyword, keyword, keyword, keyword, folder, folder, from, to];
   const items  = stmtCorrections.all(...params, limit, offset);
   const total  = stmtCount.get(...params).total;
 
@@ -140,6 +156,7 @@ const server = createServer((req, res) => {
     return send(res, 200, INDEX_HTML, 'text/html; charset=utf-8');
   }
   if (pathname === '/api/stats')       return handleStats(res);
+  if (pathname === '/api/folders')     return handleFolders(res);
   if (pathname === '/api/corrections') return handleCorrections(req, res);
 
   const matchId = pathname.match(/^\/api\/corrections\/([^/]+)$/);

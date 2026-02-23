@@ -143,6 +143,12 @@
       <label for="to">To</label>
       <input type="date" id="to" class="filter-input">
     </div>
+    <div class="filter-group">
+      <label for="folder">Folder</label>
+      <select id="folder" class="filter-input">
+        <option value="">All Folders</option>
+      </select>
+    </div>
     <div class="filter-group" style="flex: 2;">
       <label for="keyword">Keyword</label>
       <input type="text" id="keyword" class="filter-input" placeholder="Search original, corrected, or explanation...">
@@ -189,6 +195,10 @@
       <div class="modal-label">Context</div>
       <div class="modal-value context" id="modal-context"></div>
     </div>
+    <div class="modal-section" id="modal-folder-section">
+      <div class="modal-label">Work Folder</div>
+      <div class="modal-value" id="modal-folder"></div>
+    </div>
   </div>
 </div>
 
@@ -197,7 +207,7 @@
     page: 1,
     limit: 12,
     total: 0,
-    filters: { from: '', to: '', keyword: '' }
+    filters: { from: '', to: '', folder: '', keyword: '' }
   };
 
   function esc(str) {
@@ -233,6 +243,22 @@
     } catch (e) { console.error('Stats load failed', e); }
   }
 
+  async function loadFolders() {
+    try {
+      const folders = await apiFetch('/api/folders');
+      const select = document.getElementById('folder');
+      const current = select.value;
+      select.innerHTML = '<option value="">All Folders</option>';
+      folders.forEach(f => {
+        const opt = document.createElement('option');
+        opt.value = f;
+        opt.textContent = f;
+        if (f === current) opt.selected = true;
+        select.appendChild(opt);
+      });
+    } catch (e) { console.error('Folders load failed', e); }
+  }
+
   function showModal(item) {
     document.getElementById('modal-date').textContent = formatDate(item.created_at);
     document.getElementById('modal-original').textContent = item.original_text;
@@ -245,6 +271,14 @@
       document.getElementById('modal-context').textContent = item.context;
     } else {
       contextSection.style.display = 'none';
+    }
+
+    const folderSection = document.getElementById('modal-folder-section');
+    if (item.work_folder) {
+      folderSection.style.display = 'block';
+      document.getElementById('modal-folder').textContent = item.work_folder;
+    } else {
+      folderSection.style.display = 'none';
     }
 
     document.getElementById('modal-overlay').classList.add('open');
@@ -272,6 +306,7 @@
         limit: state.limit,
         from: state.filters.from,
         to: state.filters.to,
+        folder: state.filters.folder,
         keyword: state.filters.keyword
       });
 
@@ -304,6 +339,7 @@
   document.getElementById('search-btn').onclick = () => {
     state.filters.from = document.getElementById('from').value;
     state.filters.to = document.getElementById('to').value;
+    state.filters.folder = document.getElementById('folder').value;
     state.filters.keyword = document.getElementById('keyword').value;
     state.page = 1;
     loadCorrections();
@@ -328,6 +364,7 @@
 
   // Boot
   loadStats();
+  loadFolders();
   loadCorrections();
 </script>
 </body>

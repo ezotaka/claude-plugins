@@ -14,6 +14,7 @@ ORIGINAL_TEXT=""
 CORRECTED_TEXT=""
 EXPLANATION=""
 CONTEXT=""
+WORK_FOLDER=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --context)
       CONTEXT="$2"
+      shift 2
+      ;;
+    --work-folder)
+      WORK_FOLDER="$2"
       shift 2
       ;;
     *)
@@ -60,6 +65,7 @@ CREATE TABLE IF NOT EXISTS english_study_logs (
   corrected_text TEXT NOT NULL,
   explanation TEXT NOT NULL,
   context TEXT,
+  work_folder TEXT,
   created_at TEXT NOT NULL
 );
 EOF
@@ -85,11 +91,12 @@ ORIGINAL_ESCAPED=$(escape_sql "$ORIGINAL_TEXT")
 CORRECTED_ESCAPED=$(escape_sql "$CORRECTED_TEXT")
 EXPLANATION_ESCAPED=$(escape_sql "$EXPLANATION")
 CONTEXT_ESCAPED=$(escape_sql "$CONTEXT")
+WORK_FOLDER_ESCAPED=$(escape_sql "$WORK_FOLDER")
 
 # Insert log entry
 sqlite3 "$DB_PATH" <<EOF
-INSERT INTO english_study_logs (id, original_text, corrected_text, explanation, context, created_at)
-VALUES ('$UUID', '$ORIGINAL_ESCAPED', '$CORRECTED_ESCAPED', '$EXPLANATION_ESCAPED', '$CONTEXT_ESCAPED', '$TIMESTAMP');
+INSERT INTO english_study_logs (id, original_text, corrected_text, explanation, context, work_folder, created_at)
+VALUES ('$UUID', '$ORIGINAL_ESCAPED', '$CORRECTED_ESCAPED', '$EXPLANATION_ESCAPED', '$CONTEXT_ESCAPED', '$WORK_FOLDER_ESCAPED', '$TIMESTAMP');
 EOF
 
 # Output success (silent mode - only output on error)
